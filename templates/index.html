@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VISRA — Visual Search &amp; Retrieval Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+<!-- ░ BACKGROUND GRID ░ -->
+<div class="bg-grid" aria-hidden="true">
+  <div class="grid-lines"></div>
+  <div class="noise-overlay"></div>
+</div>
+
+<!-- ░ FLOATING ORBS ░ -->
+<div class="orb orb-1" aria-hidden="true"></div>
+<div class="orb orb-2" aria-hidden="true"></div>
+<div class="orb orb-3" aria-hidden="true"></div>
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2"  y="2"  width="14" height="14" rx="3" fill="var(--accent)"/>
+          <rect x="20" y="2"  width="14" height="14" rx="3" fill="var(--accent)" opacity=".5"/>
+          <rect x="2"  y="20" width="14" height="14" rx="3" fill="var(--accent)" opacity=".5"/>
+          <rect x="20" y="20" width="14" height="14" rx="3" fill="var(--accent)" opacity=".25"/>
+          <circle cx="18" cy="18" r="4" fill="var(--accent-2)" />
+        </svg>
+      </div>
+      <span class="brand-name">VISRA</span>
+      <span class="brand-sub">CBIR Engine</span>
+    </div>
+
+    <nav class="header-nav">
+      <span class="nav-pill">
+        <span class="dot dot--green"></span>
+        <span id="nav-db-count">{{ stats.total_images }}</span> images indexed
+      </span>
+      <span class="nav-pill">
+        <span class="dot dot--blue"></span>
+        {{ stats.feature_dim }}-dim features
+      </span>
+      <span class="nav-pill {% if not model_ok %}pill--warn{% endif %}">
+        <span class="dot {% if model_ok %}dot--green{% else %}dot--orange{% endif %}"></span>
+        {% if model_ok %}Model ready{% else %}Demo mode{% endif %}
+      </span>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section class="hero">
+  <div class="hero-text">
+    <p class="hero-kicker">Deep Learning · Cosine Similarity · DenseNet121</p>
+    <h1 class="hero-title">
+      Find Visually<br/>
+      <em>Similar Images</em><br/>
+      Instantly
+    </h1>
+    <p class="hero-body">
+      Upload any image and VISRA extracts a <strong>128-dimensional feature
+      vector</strong> using a fine-tuned DenseNet121, then ranks {{ stats.total_images }}
+      database images by cosine similarity — returning the top&nbsp;10 matches in&nbsp;milliseconds.
+    </p>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+      <span>Upload</span>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></div>
+      <span>Extract</span>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg></div>
+      <span>Match</span>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <span>Top-10</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ UPLOAD ZONE ═══════════════════════════ -->
+<main class="main-content">
+  <div class="upload-section">
+    <form id="upload-form" enctype="multipart/form-data">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" name="query_image"
+               accept=".jpg,.jpeg,.png,.bmp,.webp,.tiff" hidden />
+
+        <!-- Default state -->
+        <div class="dz-content" id="dz-default">
+          <div class="dz-icon">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M32 8 C20 8 10 18 10 30 C10 42 20 52 32 52 C44 52 54 42 54 30 C54 18 44 8 32 8Z"
+                    stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+              <circle cx="32" cy="30" r="8" fill="var(--accent)" opacity=".12"/>
+              <path d="M32 22 v16 M24 30 h16" stroke="var(--accent)" stroke-width="2"
+                    stroke-linecap="round"/>
+              <circle cx="44" cy="18" r="3" fill="var(--accent-2)" opacity=".7"/>
+            </svg>
+          </div>
+          <p class="dz-title">Drop your image here</p>
+          <p class="dz-sub">or <button type="button" class="dz-browse" id="browse-btn">browse files</button></p>
+          <p class="dz-formats">JPG · PNG · BMP · WEBP &nbsp;·&nbsp; max 16 MB</p>
+        </div>
+
+        <!-- Preview state -->
+        <div class="dz-preview" id="dz-preview" hidden>
+          <img id="preview-img" src="" alt="Query preview" />
+          <div class="dz-preview-info">
+            <span id="preview-name" class="preview-name"></span>
+            <button type="button" class="btn-clear" id="clear-btn" title="Remove">×</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls row -->
+      <div class="controls-row">
+        <label class="topk-label">
+          <span>Top-K results</span>
+          <select name="top_k" id="topk-select" class="topk-select">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </label>
+
+        <button type="submit" class="btn-search" id="search-btn" disabled>
+          <span class="btn-text">Search Similar Images</span>
+          <span class="btn-icon">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="9" cy="9" r="6"/><path d="m15 15 3 3"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ═══ RESULTS AREA ═══ -->
+  <div id="results-area" hidden>
+
+    <!-- Loading -->
+    <div id="loading-state" hidden>
+      <div class="loading-ring">
+        <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+          <circle class="ring-track" cx="40" cy="40" r="32"/>
+          <circle class="ring-fill"  cx="40" cy="40" r="32"/>
+        </svg>
+      </div>
+      <p class="loading-label">Extracting features &amp; searching…</p>
+    </div>
+
+    <!-- Results layout -->
+    <div id="results-content" hidden>
+
+      <!-- Split: query | results -->
+      <div class="results-header">
+        <h2 class="results-title">Retrieval Results</h2>
+        <div id="results-meta" class="results-meta"></div>
+      </div>
+
+      <div class="results-layout">
+
+        <!-- Query card -->
+        <div class="query-card">
+          <div class="card-label">Query Image</div>
+          <div class="query-img-wrap">
+            <img id="result-query-img" src="" alt="Query" />
+          </div>
+          <div class="query-meta" id="query-meta"></div>
+        </div>
+
+        <!-- Similarity grid -->
+        <div class="results-right">
+          <div class="grid-header">
+            <span class="grid-title">Top Matches <span id="match-count-badge" class="badge"></span></span>
+            <div class="sort-tabs">
+              <button class="sort-tab active" data-sort="rank">By Rank</button>
+              <button class="sort-tab" data-sort="class">By Class</button>
+            </div>
+          </div>
+          <div class="results-grid" id="results-grid"></div>
+        </div>
+      </div>
+
+      <!-- Class distribution bar -->
+      <div class="dist-section">
+        <h3 class="dist-title">Retrieved Class Distribution</h3>
+        <div class="dist-bars" id="dist-bars"></div>
+      </div>
+
+      <button class="btn-new-search" id="new-search-btn">
+        ← New Search
+      </button>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" hidden>
+      <div class="error-box">
+        <span class="error-icon">⚠</span>
+        <p id="error-msg"></p>
+        <button class="btn-retry" id="retry-btn">Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DB STATS ═══ -->
+  <div class="stats-section">
+    <h3 class="stats-title">Database Overview</h3>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.total_images }}</div>
+        <div class="stat-label">Total Images</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.num_classes }}</div>
+        <div class="stat-label">Classes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.feature_dim }}</div>
+        <div class="stat-label">Feature Dims</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">DenseNet<span style="font-size:.6em">121</span></div>
+        <div class="stat-label">Backbone</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">cosine</div>
+        <div class="stat-label">Similarity</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">5-fold</div>
+        <div class="stat-label">Cross-Val</div>
+      </div>
+    </div>
+
+    <div class="class-dist-static">
+      {% for name, count in stats.class_dist.items() %}
+      <div class="cds-row">
+        <span class="cds-name">{{ name }}</span>
+        <div class="cds-bar-wrap">
+          <div class="cds-bar" style="width: {{ (count / stats.total_images * 100)|round(1) }}%"></div>
+        </div>
+        <span class="cds-count">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p>VISRA · Content-Based Image Retrieval · DenseNet121 + Stratified 5-Fold CV + Cosine Similarity</p>
+    <p class="footer-tech">Flask · TensorFlow · NumPy · scikit-learn · Pillow</p>
+  </div>
+</footer>
+
+<!-- Result card template -->
+<template id="result-card-tpl">
+  <div class="result-card">
+    <div class="rc-rank-badge"></div>
+    <div class="rc-img-wrap">
+      <img class="rc-img" src="" alt="" loading="lazy" />
+      <div class="rc-no-img">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="4" y="4" width="40" height="40" rx="4"/>
+          <circle cx="16" cy="16" r="4"/>
+          <path d="m44 30-12-10L10 44"/>
+        </svg>
+        <span>No image file</span>
+      </div>
+    </div>
+    <div class="rc-body">
+      <div class="rc-class-row">
+        <span class="rc-class-dot"></span>
+        <span class="rc-class-name"></span>
+      </div>
+      <div class="rc-score-row">
+        <span class="rc-score-label">Similarity</span>
+        <span class="rc-score-val"></span>
+      </div>
+      <div class="rc-score-bar-wrap">
+        <div class="rc-score-bar"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
